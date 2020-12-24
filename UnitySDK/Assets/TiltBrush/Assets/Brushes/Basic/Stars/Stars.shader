@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc.
+﻿// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,86 +13,95 @@
 // limitations under the License.
 
 Shader "Brush/Particle/Stars" {
-Properties {
-  _MainTex ("Particle Texture", 2D) = "white" {}
-  _SparkleRate ("Sparkle Rate", Float) = 2.5
-  _SpreadRate ("Spread Rate", Range(0.3, 5)) = 1.539
-}
+	Properties{
+	  _MainTex("Particle Texture", 2D) = "white" {}
+	  _SparkleRate("Sparkle Rate", Float) = 2.5
+	  _SpreadRate("Spread Rate", Range(0.3, 5)) = 1.539
+	}
 
-Category {
-  Tags { "Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent" "DisableBatching"="True" }
-  Blend One One // SrcAlpha One
-  BlendOp Add, Min
-  AlphaTest Greater .01
-  ColorMask RGBA
-  Cull Off Lighting Off ZWrite Off Fog { Color (0,0,0,0) }
+		Category{
+		  Tags { "Queue" = "Transparent" "IgnoreProjector" = "True" "RenderType" = "Transparent" "DisableBatching" = "True" }
+		  Blend One One // SrcAlpha One
+		  BlendOp Add, Min
+		  AlphaTest Greater .01
+		  ColorMask RGBA
+		  Cull Off Lighting Off ZWrite Off Fog { Color(0,0,0,0) }
 
-  SubShader {
-    Pass {
+		  SubShader {
+			Pass {
 
-      CGPROGRAM
-      #pragma vertex vert
-      #pragma fragment frag
-      #pragma multi_compile_particles
-      #pragma multi_compile __ AUDIO_REACTIVE
-      #pragma multi_compile __ TBT_LINEAR_TARGET
-      #pragma target 3.0
+			  CGPROGRAM
+			  #pragma vertex vert
+			  #pragma fragment frag
+			  #pragma multi_compile_particles
+			  #pragma multi_compile __ AUDIO_REACTIVE
+			  #pragma multi_compile __ TBT_LINEAR_TARGET
+			  #pragma target 3.0
 
-      #include "UnityCG.cginc"
-      #include "../../../Shaders/Include/Brush.cginc"
-      #include "../../../Shaders/Include/Particles.cginc"
+			  #include "UnityCG.cginc"
+			  #include "../../../Shaders/Include/Brush.cginc"
+			  #include "../../../Shaders/Include/Particles.cginc"
 
-      sampler2D _MainTex;
-      float4 _MainTex_ST;
-      float _SparkleRate;
-      float _SpreadRate;
+			  sampler2D _MainTex;
+			  float4 _MainTex_ST;
+			  float _SparkleRate;
+			  float _SpreadRate;
 
-      struct v2f {
-        float4 vertex : SV_POSITION;
-        fixed4 color : COLOR;
-        float2 texcoord : TEXCOORD0;
-      };
+			  struct v2f {
+				  UNITY_VERTEX_INPUT_INSTANCE_ID
+					  UNITY_VERTEX_OUTPUT_STEREO
+				float4 vertex : SV_POSITION;
+				fixed4 color : COLOR;
+				float2 texcoord : TEXCOORD0;
+			  };
 
-      v2f vert (ParticleVertexWithSpread_t v)
-      {
-        v.color = TbVertToSrgb(v.color);
-        const float PI = 3.14159265359;
-        v2f o;
-        float birthTime = v.texcoord.w;
-        float rotation = v.texcoord.z;
-        float halfSize = GetParticleHalfSize(v.corner.xyz, v.center, birthTime);
-        float spreadProgress = SpreadProgress(birthTime, _SpreadRate);
-        float4 center = SpreadParticle(v, spreadProgress);
+			  v2f vert(ParticleVertexWithSpread_t v)
+			  {
+				v.color = TbVertToSrgb(v.color);
+				const float PI = 3.14159265359;
+				v2f o;
+				UNITY_INITIALIZE_OUTPUT(v2f, o);
+				UNITY_SETUP_INSTANCE_ID(v);
+				UNITY_TRANSFER_INSTANCE_ID(v, o);
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-        float phase = v.color.a * (2 * PI);
-        float brightness;
+				float birthTime = v.texcoord.w;
+				float rotation = v.texcoord.z;
+				float halfSize = GetParticleHalfSize(v.corner.xyz, v.center, birthTime);
+				float spreadProgress = SpreadProgress(birthTime, _SpreadRate);
+				float4 center = SpreadParticle(v, spreadProgress);
 
-#ifdef AUDIO_REACTIVE
-        brightness = 800 * pow(abs(sin(_BeatOutputAccum.w * _SparkleRate + phase)), 20);
-        brightness = brightness*.25 + 2*brightness * (_BeatOutput.w);
-#else
-        brightness = 800 * pow(abs(sin(_Time.y * _SparkleRate + phase)), 20);
-#endif
-        o.color.rgb = v.color.rgb * brightness;
-        o.color.a = 1;
-        o.texcoord = TRANSFORM_TEX(v.texcoord.xy,_MainTex);
+				float phase = v.color.a * (2 * PI);
+				float brightness;
 
-        float4 corner = OrientParticle(center.xyz, halfSize, v.vid, rotation);
-        o.vertex = UnityObjectToClipPos(corner);
+		#ifdef AUDIO_REACTIVE
+				brightness = 800 * pow(abs(sin(_BeatOutputAccum.w * _SparkleRate + phase)), 20);
+				brightness = brightness * .25 + 2 * brightness * (_BeatOutput.w);
+		#else
+				brightness = 800 * pow(abs(sin(_Time.y * _SparkleRate + phase)), 20);
+		#endif
+				o.color.rgb = v.color.rgb * brightness;
+				o.color.a = 1;
+				o.texcoord = TRANSFORM_TEX(v.texcoord.xy,_MainTex);
 
-        return o;
-      }
+				float4 corner = OrientParticle(center.xyz, halfSize, v.vid, rotation);
+				o.vertex = UnityObjectToClipPos(corner);
 
-      // Input color is srgb
-      fixed4 frag (v2f i) : SV_Target
-      {
-        float4 color = i.color * tex2D(_MainTex, i.texcoord);
-        color = float4(color.rgb * color.a, 1.0);
-        color = SrgbToNative(color);
-        return color;
-      }
-      ENDCG
-    }
-  }
-}
+				return o;
+			  }
+
+			  // Input color is srgb
+			  fixed4 frag(v2f i) : SV_Target
+			  {
+				  UNITY_SETUP_INSTANCE_ID(i);
+
+				float4 color = i.color * tex2D(_MainTex, i.texcoord);
+				color = float4(color.rgb * color.a, 1.0);
+				color = SrgbToNative(color);
+				return color;
+			  }
+			  ENDCG
+			}
+		  }
+	  }
 }

@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc.
+﻿// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,109 +13,118 @@
 // limitations under the License.
 
 Shader "Brush/Particle/Bubbles" {
-Properties {
-  _MainTex ("Particle Texture", 2D) = "white" {}
-  _ScrollRate("Scroll Rate", Float) = 1.0
-  _ScrollJitterIntensity("Scroll Jitter Intensity", Float) = 1.0
-  _ScrollJitterFrequency("Scroll Jitter Frequency", Float) = 1.0
-  _SpreadRate ("Spread Rate", Range(0.3, 5)) = 1.539
-}
+	Properties{
+	  _MainTex("Particle Texture", 2D) = "white" {}
+	  _ScrollRate("Scroll Rate", Float) = 1.0
+	  _ScrollJitterIntensity("Scroll Jitter Intensity", Float) = 1.0
+	  _ScrollJitterFrequency("Scroll Jitter Frequency", Float) = 1.0
+	  _SpreadRate("Spread Rate", Range(0.3, 5)) = 1.539
+	}
 
-Category {
-  Tags { "Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent" "DisableBatching"="True" }
-  Blend One One
-  AlphaTest Greater .01
-  ColorMask RGB
-  Cull Off Lighting Off ZWrite Off Fog { Color (0,0,0,0) }
+		Category{
+		  Tags { "Queue" = "Transparent" "IgnoreProjector" = "True" "RenderType" = "Transparent" "DisableBatching" = "True" }
+		  Blend One One
+		  AlphaTest Greater .01
+		  ColorMask RGB
+		  Cull Off Lighting Off ZWrite Off Fog { Color(0,0,0,0) }
 
-  SubShader {
-    Pass {
+		  SubShader {
+			Pass {
 
-      CGPROGRAM
-      #pragma vertex vert
-      #pragma fragment frag
-      #pragma multi_compile_particles
-      #pragma target 3.0
-      #pragma multi_compile __ TBT_LINEAR_TARGET
+			  CGPROGRAM
+			  #pragma vertex vert
+			  #pragma fragment frag
+			  #pragma multi_compile_particles
+			  #pragma target 3.0
+			  #pragma multi_compile __ TBT_LINEAR_TARGET
 
-      #include "UnityCG.cginc"
-      #include "../../../Shaders/Include/Brush.cginc"
-      #include "../../../Shaders/Include/Particles.cginc"
-      #include "Assets/ThirdParty/Noise/Shaders/Noise.cginc"
+			  #include "UnityCG.cginc"
+			  #include "../../../Shaders/Include/Brush.cginc"
+			  #include "../../../Shaders/Include/Particles.cginc"
+			  #include "Assets/ThirdParty/Noise/Shaders/Noise.cginc"
 
-      sampler2D _MainTex;
-      fixed4 _TintColor;
+			  sampler2D _MainTex;
+			  fixed4 _TintColor;
 
-      struct v2f {
-        float4 vertex : SV_POSITION;
-        fixed4 color : COLOR;
-        float2 texcoord : TEXCOORD0;
-      };
+			  struct v2f {
+				  UNITY_VERTEX_INPUT_INSTANCE_ID
+					  UNITY_VERTEX_OUTPUT_STEREO
+				float4 vertex : SV_POSITION;
+				fixed4 color : COLOR;
+				float2 texcoord : TEXCOORD0;
+			  };
 
-      float4 _MainTex_ST;
-      float _ScrollRate;
-      float _ScrollJitterIntensity;
-      float _ScrollJitterFrequency;
-      float3 _WorldSpaceRootCameraPosition;
-      float _SpreadRate;
+			  float4 _MainTex_ST;
+			  float _ScrollRate;
+			  float _ScrollJitterIntensity;
+			  float _ScrollJitterFrequency;
+			  float3 _WorldSpaceRootCameraPosition;
+			  float _SpreadRate;
 
-      float3 computeDisplacement(float3 seed, float timeOffset) {
-        float3 jitter; {
-          float t = _Time.y * _ScrollRate + timeOffset;
-          jitter.x = sin(t       + _Time.y + seed.z * _ScrollJitterFrequency);
-          jitter.z = cos(t       + _Time.y + seed.x * _ScrollJitterFrequency);
-          jitter.y = cos(t * 1.2 + _Time.y + seed.x * _ScrollJitterFrequency);
-          jitter *= _ScrollJitterIntensity;
-        }
+			  float3 computeDisplacement(float3 seed, float timeOffset) {
+				float3 jitter; {
+				  float t = _Time.y * _ScrollRate + timeOffset;
+				  jitter.x = sin(t + _Time.y + seed.z * _ScrollJitterFrequency);
+				  jitter.z = cos(t + _Time.y + seed.x * _ScrollJitterFrequency);
+				  jitter.y = cos(t * 1.2 + _Time.y + seed.x * _ScrollJitterFrequency);
+				  jitter *= _ScrollJitterIntensity;
+				}
 
-        float3 curl; {
-          float3 v = (seed + jitter) * .1 + _Time.x * 5;
-          float d = 30;
-          curl = float3(curlX(v, d), curlY(v, d), curlZ(v, d)) * 10;
-        }
+				float3 curl; {
+				  float3 v = (seed + jitter) * .1 + _Time.x * 5;
+				  float d = 30;
+				  curl = float3(curlX(v, d), curlY(v, d), curlZ(v, d)) * 10;
+				}
 
-        return (jitter + curl) * kDecimetersToWorldUnits;
-      }
+				return (jitter + curl) * kDecimetersToWorldUnits;
+			  }
 
-      v2f vert (ParticleVertexWithSpread_t v) {
-        v2f o;
-        v.color = TbVertToSrgb(v.color);
-        float birthTime = v.texcoord.w;
-        float rotation = v.texcoord.z;
-        float halfSize = GetParticleHalfSize(v.corner.xyz, v.center, birthTime);
-        float spreadProgress = SpreadProgress(birthTime, _SpreadRate);
-        float4 center = SpreadParticle(v, spreadProgress);
+			  v2f vert(ParticleVertexWithSpread_t v) {
+				v2f o;
+				UNITY_INITIALIZE_OUTPUT(v2f, o);
+				UNITY_SETUP_INSTANCE_ID(v);
+				UNITY_TRANSFER_INSTANCE_ID(v, o);
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-        float3 displacement_SS = spreadProgress * computeDisplacement(center, 1);
-        float3 displacement_WS = mul(xf_CS, float4(displacement_SS, 0));
-        float3 displacement_OS = mul(unity_WorldToObject, float4(displacement_WS, 0));
-        center.xyz += displacement_OS;
-        float4 corner = OrientParticle(center.xyz, halfSize, v.vid, rotation);
-        o.vertex = UnityObjectToClipPos(corner);
+				v.color = TbVertToSrgb(v.color);
+				float birthTime = v.texcoord.w;
+				float rotation = v.texcoord.z;
+				float halfSize = GetParticleHalfSize(v.corner.xyz, v.center, birthTime);
+				float spreadProgress = SpreadProgress(birthTime, _SpreadRate);
+				float4 center = SpreadParticle(v, spreadProgress);
 
-        // Brighten up the bubbles
-        o.color = v.color;
-        o.color.a = 1;
-        o.texcoord = TRANSFORM_TEX(v.texcoord.xy,_MainTex);
+				float3 displacement_SS = spreadProgress * computeDisplacement(center, 1);
+				float3 displacement_WS = mul(xf_CS, float4(displacement_SS, 0));
+				float3 displacement_OS = mul(unity_WorldToObject, float4(displacement_WS, 0));
+				center.xyz += displacement_OS;
+				float4 corner = OrientParticle(center.xyz, halfSize, v.vid, rotation);
+				o.vertex = UnityObjectToClipPos(corner);
 
-        return o;
-      }
+				// Brighten up the bubbles
+				o.color = v.color;
+				o.color.a = 1;
+				o.texcoord = TRANSFORM_TEX(v.texcoord.xy,_MainTex);
 
-      fixed4 frag (v2f i) : SV_Target
-      {
-        float4 tex = tex2D(_MainTex, i.texcoord);
+				return o;
+			  }
 
-        // RGB Channels of the texture are affected by color
-        float3 basecolor = i.color * tex.rgb;
+			  fixed4 frag(v2f i) : SV_Target
+			  {
+				  UNITY_SETUP_INSTANCE_ID(i);
 
-        // Alpha channel of the texture is not affected by color.  It is the fake "highlight" bubble effect.
-        float3 highlightcolor = tex.a;
+				float4 tex = tex2D(_MainTex, i.texcoord);
 
-        float4 color = float4(basecolor + highlightcolor, 1);
-        return SrgbToNative(color);
-      }
-      ENDCG
-    }
-  }
-}
+				// RGB Channels of the texture are affected by color
+				float3 basecolor = i.color * tex.rgb;
+
+				// Alpha channel of the texture is not affected by color.  It is the fake "highlight" bubble effect.
+				float3 highlightcolor = tex.a;
+
+				float4 color = float4(basecolor + highlightcolor, 1);
+				return SrgbToNative(color);
+			  }
+			  ENDCG
+			}
+		  }
+	  }
 }

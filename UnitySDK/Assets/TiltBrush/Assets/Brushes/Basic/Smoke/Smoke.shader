@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc.
+﻿// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,109 +13,118 @@
 // limitations under the License.
 
 Shader "Brush/Particle/Smoke" {
-Properties {
-  _TintColor ("Tint Color", Color) = (0.5,0.5,0.5,0.5)
-  _MainTex ("Particle Texture", 2D) = "white" {}
-  _ScrollRate("Scroll Rate", Float) = 1.0
-}
+	Properties{
+	  _TintColor("Tint Color", Color) = (0.5,0.5,0.5,0.5)
+	  _MainTex("Particle Texture", 2D) = "white" {}
+	  _ScrollRate("Scroll Rate", Float) = 1.0
+	}
 
-Category {
-  Tags { "Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent" "DisableBatching"="True" }
-  Blend SrcAlpha One
-  AlphaTest Greater .01
-  ColorMask RGB
-  Cull Off Lighting Off ZWrite Off Fog { Color (0,0,0,0) }
+		Category{
+		  Tags { "Queue" = "Transparent" "IgnoreProjector" = "True" "RenderType" = "Transparent" "DisableBatching" = "True" }
+		  Blend SrcAlpha One
+		  AlphaTest Greater .01
+		  ColorMask RGB
+		  Cull Off Lighting Off ZWrite Off Fog { Color(0,0,0,0) }
 
-  SubShader {
-    Pass {
+		  SubShader {
+			Pass {
 
-      CGPROGRAM
-      #pragma vertex vert
-      #pragma fragment frag
-      #pragma multi_compile_particles
-      #pragma target 3.0
-      #pragma multi_compile __ TBT_LINEAR_TARGET
+			  CGPROGRAM
+			  #pragma vertex vert
+			  #pragma fragment frag
+			  #pragma multi_compile_particles
+			  #pragma target 3.0
+			  #pragma multi_compile __ TBT_LINEAR_TARGET
 
-      #include "UnityCG.cginc"
-      #include "../../../Shaders/Include/Brush.cginc"
-      #include "../../../Shaders/Include/Particles.cginc"
-      #include "Assets/ThirdParty/Noise/Shaders/Noise.cginc"
+			  #include "UnityCG.cginc"
+			  #include "../../../Shaders/Include/Brush.cginc"
+			  #include "../../../Shaders/Include/Particles.cginc"
+			  #include "Assets/ThirdParty/Noise/Shaders/Noise.cginc"
 
-      sampler2D _MainTex;
-      fixed4 _TintColor;
+			  sampler2D _MainTex;
+			  fixed4 _TintColor;
 
-      struct v2f {
-        float4 vertex : SV_POSITION;
-        fixed4 color : COLOR;
-        float2 texcoord : TEXCOORD0;
-      };
+			  struct v2f {
+				  UNITY_VERTEX_INPUT_INSTANCE_ID
+					  UNITY_VERTEX_OUTPUT_STEREO
+				float4 vertex : SV_POSITION;
+				fixed4 color : COLOR;
+				float2 texcoord : TEXCOORD0;
+			  };
 
-      float4 _MainTex_ST;
-      float _ScrollRate;
+			  float4 _MainTex_ST;
+			  float _ScrollRate;
 
-      //
-      // Functions for line/plane distances. Experimental.
-      //
-      float dist_from_line(float3 line_dir, float3 point_on_line, float3 pos) {
-        float3 point_to_line = pos - point_on_line;
-        float3 dist_along_line = dot(point_to_line, line_dir);
-        float3 closest_point_on_line = dist_along_line * line_dir + point_on_line;
-        return length(closest_point_on_line - pos);
-      }
+			  //
+			  // Functions for line/plane distances. Experimental.
+			  //
+			  float dist_from_line(float3 line_dir, float3 point_on_line, float3 pos) {
+				float3 point_to_line = pos - point_on_line;
+				float3 dist_along_line = dot(point_to_line, line_dir);
+				float3 closest_point_on_line = dist_along_line * line_dir + point_on_line;
+				return length(closest_point_on_line - pos);
+			  }
 
-      float dist_from_line_repeating(float3 line_dir, float3 point_on_line, float3 pos) {
-        float3 point_to_line = pos - point_on_line;
-        float3 dist_along_line = dot(point_to_line, line_dir);
-        float3 closest_point_on_line = dist_along_line * line_dir + point_on_line;
-        return length( sin(closest_point_on_line - pos));
-      }
+			  float dist_from_line_repeating(float3 line_dir, float3 point_on_line, float3 pos) {
+				float3 point_to_line = pos - point_on_line;
+				float3 dist_along_line = dot(point_to_line, line_dir);
+				float3 closest_point_on_line = dist_along_line * line_dir + point_on_line;
+				return length(sin(closest_point_on_line - pos));
+			  }
 
-      float4 dist_from_plane(float3 plane_normal, float3 point_on_plane, float3 pos) {
-        float dist = dot(plane_normal, pos - point_on_plane);
-        float3 closest_point_on_plane = pos - dist * plane_normal;
-        return float4(closest_point_on_plane.xyz, abs(dist));
-      }
+			  float4 dist_from_plane(float3 plane_normal, float3 point_on_plane, float3 pos) {
+				float dist = dot(plane_normal, pos - point_on_plane);
+				float3 closest_point_on_plane = pos - dist * plane_normal;
+				return float4(closest_point_on_plane.xyz, abs(dist));
+			  }
 
-      v2f vert (ParticleVertex_t v)
-      {
-        v.color = TbVertToSrgb(v.color);
-        v2f o;
-        float birthTime = v.texcoord.w;
-        float rotation = v.texcoord.z;
-        float halfSize = GetParticleHalfSize(v.corner.xyz, v.center, birthTime);
-        float4 center = float4(v.center.xyz, 1);
-        float4 center_WS = mul(unity_ObjectToWorld, center);
+			  v2f vert(ParticleVertex_t v)
+			  {
+				v.color = TbVertToSrgb(v.color);
+				v2f o;
+				UNITY_INITIALIZE_OUTPUT(v2f, o);
+				UNITY_SETUP_INSTANCE_ID(v);
+				UNITY_TRANSFER_INSTANCE_ID(v, o);
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-        float t = _Time.y*_ScrollRate + v.color.a * 10;
-        float time = _Time.x * 5;
-        float d = 30;
-        float freq = .1;
-        float3 disp = float3(1,0,0) * curlX(center_WS.xyz * freq + time, d);
-        disp += float3(0,1,0) * curlY(center_WS.xyz * freq +time, d);
-        disp += float3(0,0,1) * curlZ(center_WS.xyz * freq + time, d);
-        disp = disp * 5 * kDecimetersToWorldUnits;
+				float birthTime = v.texcoord.w;
+				float rotation = v.texcoord.z;
+				float halfSize = GetParticleHalfSize(v.corner.xyz, v.center, birthTime);
+				float4 center = float4(v.center.xyz, 1);
+				float4 center_WS = mul(unity_ObjectToWorld, center);
 
-        center_WS.xyz += mul(xf_CS, float4(disp, 0));
+				float t = _Time.y * _ScrollRate + v.color.a * 10;
+				float time = _Time.x * 5;
+				float d = 30;
+				float freq = .1;
+				float3 disp = float3(1,0,0) * curlX(center_WS.xyz * freq + time, d);
+				disp += float3(0,1,0) * curlY(center_WS.xyz * freq + time, d);
+				disp += float3(0,0,1) * curlZ(center_WS.xyz * freq + time, d);
+				disp = disp * 5 * kDecimetersToWorldUnits;
 
-        float4 corner = OrientParticle_WS(center_WS.xyz, halfSize, v.vid, rotation);
-        o.vertex = mul(UNITY_MATRIX_VP, corner);
+				center_WS.xyz += mul(xf_CS, float4(disp, 0));
 
-        o.color = v.color;
-        v.color.a = 1;
-        o.texcoord = TRANSFORM_TEX(v.texcoord.xy,_MainTex);
+				float4 corner = OrientParticle_WS(center_WS.xyz, halfSize, v.vid, rotation);
+				o.vertex = mul(UNITY_MATRIX_VP, corner);
 
-        return o;
-      }
+				o.color = v.color;
+				v.color.a = 1;
+				o.texcoord = TRANSFORM_TEX(v.texcoord.xy,_MainTex);
 
-      fixed4 frag (v2f i) : SV_Target
-      {
-        float4 c =  tex2D(_MainTex, i.texcoord);
-        c *= i.color * _TintColor;
-        c = SrgbToNative(c);
-        return c;
-      }
-      ENDCG
-    }
-  }
-}
+				return o;
+			  }
+
+			  fixed4 frag(v2f i) : SV_Target
+			  {
+				  UNITY_SETUP_INSTANCE_ID(i);
+
+				float4 c = tex2D(_MainTex, i.texcoord);
+				c *= i.color * _TintColor;
+				c = SrgbToNative(c);
+				return c;
+			  }
+			  ENDCG
+			}
+		  }
+	  }
 }

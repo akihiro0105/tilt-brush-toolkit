@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc.
+﻿// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,73 +13,82 @@
 // limitations under the License.
 
 Shader "Brush/Special/CelVinyl" {
-  Properties{
-    _MainTex("MainTex", 2D) = "white" {}
-    _Color("Color", Color) = (1,1,1,1)
-    _Cutoff ("Alpha Cutoff", Range (0,1)) = 0.5
-  }
+	Properties{
+	  _MainTex("MainTex", 2D) = "white" {}
+	  _Color("Color", Color) = (1,1,1,1)
+	  _Cutoff("Alpha Cutoff", Range(0,1)) = 0.5
+	}
 
-  SubShader{
-    Pass {
-      Tags{ "Queue" = "AlphaTest" "IgnoreProjector" = "True" "RenderType" = "TransparentCutout"}
+		SubShader{
+		  Pass {
+			Tags{ "Queue" = "AlphaTest" "IgnoreProjector" = "True" "RenderType" = "TransparentCutout"}
 
-      Lighting Off
-      Cull Off
+			Lighting Off
+			Cull Off
 
-      CGPROGRAM
-        #pragma vertex vert
-        #pragma fragment frag
-        #pragma multi_compile __ TBT_LINEAR_TARGET
-        #pragma multi_compile_fog
-        #include "../../../Shaders/Include/Brush.cginc"
-        #include "UnityCG.cginc"
-        #pragma target 3.0
+			CGPROGRAM
+			  #pragma vertex vert
+			  #pragma fragment frag
+			  #pragma multi_compile __ TBT_LINEAR_TARGET
+			  #pragma multi_compile_fog
+			  #include "../../../Shaders/Include/Brush.cginc"
+			  #include "UnityCG.cginc"
+			  #pragma target 3.0
 
-        sampler2D _MainTex;
-        float4 _MainTex_ST;
-        fixed4 _Color;
-        float _Cutoff;
+			  sampler2D _MainTex;
+			  float4 _MainTex_ST;
+			  fixed4 _Color;
+			  float _Cutoff;
 
-        struct appdata_t {
-            float4 vertex : POSITION;
-            float2 texcoord : TEXCOORD0;
-            float4 color : COLOR;
-        };
+			  struct appdata_t {
+				  UNITY_VERTEX_INPUT_INSTANCE_ID
+				  float4 vertex : POSITION;
+				  float2 texcoord : TEXCOORD0;
+				  float4 color : COLOR;
+			  };
 
-        struct v2f {
-            float4 vertex : SV_POSITION;
-            float2 texcoord : TEXCOORD0;
-            float4 color : COLOR;
-            UNITY_FOG_COORDS(1)
-        };
+			  struct v2f {
+				  UNITY_VERTEX_INPUT_INSTANCE_ID
+					  UNITY_VERTEX_OUTPUT_STEREO
+				  float4 vertex : SV_POSITION;
+				  float2 texcoord : TEXCOORD0;
+				  float4 color : COLOR;
+				  UNITY_FOG_COORDS(1)
+			  };
 
-        v2f vert (appdata_t v)
-        {
+			  v2f vert(appdata_t v)
+			  {
 
-          v2f o;
+				v2f o;
+				UNITY_INITIALIZE_OUTPUT(v2f, o);
+				UNITY_SETUP_INSTANCE_ID(v);
+				UNITY_TRANSFER_INSTANCE_ID(v, o);
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-          o.vertex = UnityObjectToClipPos(v.vertex);
-          o.texcoord = v.texcoord;
-          o.color = TbVertToNative(v.color);
-          UNITY_TRANSFER_FOG(o, o.vertex);
-          return o;
-        }
+				o.vertex = UnityObjectToClipPos(v.vertex);
+				o.texcoord = v.texcoord;
+				o.color = TbVertToNative(v.color);
+				UNITY_TRANSFER_FOG(o, o.vertex);
+				return o;
+			  }
 
-        fixed4 frag (v2f i) : SV_Target
-        {
-          fixed4 tex = tex2D(_MainTex, i.texcoord) * i.color;
-          UNITY_APPLY_FOG(i.fogCoord, tex);
+			  fixed4 frag(v2f i) : SV_Target
+			  {
+				UNITY_SETUP_INSTANCE_ID(i);
 
-          // Discard transparent pixels.
-          if (tex.a < _Cutoff) {
-            discard;
-          }
-          return tex;
-        }
+				fixed4 tex = tex2D(_MainTex, i.texcoord) * i.color;
+				UNITY_APPLY_FOG(i.fogCoord, tex);
 
-      ENDCG
-    }
-  }
+				// Discard transparent pixels.
+				if (tex.a < _Cutoff) {
+				  discard;
+				}
+				return tex;
+			  }
 
-  Fallback "Unlit/Diffuse"
+			ENDCG
+		  }
+	  }
+
+		  Fallback "Unlit/Diffuse"
 }

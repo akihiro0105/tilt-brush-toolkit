@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc.
+﻿// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,47 +18,58 @@
 // - no per-material color
 
 Shader "Unlit/Diffuse" {
-Properties {
-  _Color ("Color", Color) = (1,1,1,1)
-}
+	Properties{
+	  _Color("Color", Color) = (1,1,1,1)
+	}
 
-SubShader {
-  Tags { "RenderType"="Opaque" }
-  LOD 100
-  Blend One One, Zero One
+		SubShader{
+		  Tags { "RenderType" = "Opaque" }
+		  LOD 100
+		  Blend One One, Zero One
 
 
-  Pass {
-    CGPROGRAM
-      #pragma vertex vert
-      #pragma fragment frag
+		  Pass {
+			CGPROGRAM
+			  #pragma vertex vert
+			  #pragma fragment frag
 
-      #include "UnityCG.cginc"
+			  #include "UnityCG.cginc"
 
-      struct appdata_t {
-        float4 vertex : POSITION;
-      };
+			  struct appdata_t {
+			UNITY_VERTEX_INPUT_INSTANCE_ID
+				float4 vertex : POSITION;
+			  };
 
-      struct v2f {
-        float4 vertex : SV_POSITION;
-      };
+			  struct v2f {
+				  UNITY_VERTEX_INPUT_INSTANCE_ID
+					  UNITY_VERTEX_OUTPUT_STEREO
+				float4 vertex : SV_POSITION;
+			  };
 
-      uniform float4 _Color;
+			  uniform float4 _Color;
 
-      v2f vert (appdata_t v)
-      {
-        v2f o;
-        o.vertex = UnityObjectToClipPos(v.vertex);
-        return o;
-      }
+			  v2f vert(appdata_t v)
+			  {
+				v2f o;
 
-      fixed4 frag (v2f i) : SV_Target
-      {
-        _Color.rgb *= _Color.a;
-        return _Color;
-      }
-    ENDCG
-  }
-}
+				UNITY_INITIALIZE_OUTPUT(v2f, o);
+				UNITY_SETUP_INSTANCE_ID(v);
+				UNITY_TRANSFER_INSTANCE_ID(v, o);
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+
+				o.vertex = UnityObjectToClipPos(v.vertex);
+				return o;
+			  }
+
+			  fixed4 frag(v2f i) : SV_Target
+			  {
+				  UNITY_SETUP_INSTANCE_ID(i);
+
+				_Color.rgb *= _Color.a;
+				return _Color;
+			  }
+			ENDCG
+		  }
+	}
 
 }

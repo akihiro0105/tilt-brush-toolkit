@@ -17,3 +17,8 @@
 /*.sln
 /*.userprefs
 /.vs/
+
+/Assets/TiltModels
+/Assets/TiltModels.meta
+
+/bin

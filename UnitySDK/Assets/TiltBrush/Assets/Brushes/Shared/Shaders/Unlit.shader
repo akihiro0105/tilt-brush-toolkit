@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc.
+﻿// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,71 +14,81 @@
 
 Shader "Brush/Special/Unlit" {
 
-Properties {
-    _MainTex ("Texture", 2D) = "white" {}
-    _Cutoff ("Alpha cutoff", Range(0,1)) = 0.5
+	Properties{
+		_MainTex("Texture", 2D) = "white" {}
+		_Cutoff("Alpha cutoff", Range(0,1)) = 0.5
 
-}
+	}
 
-SubShader {
-    Pass {
-        Tags {"Queue"="AlphaTest" "IgnoreProjector"="True" "RenderType"="TransparentCutout"}
-        Lighting Off
-        Cull Off
+		SubShader{
+			Pass {
+				Tags {"Queue" = "AlphaTest" "IgnoreProjector" = "True" "RenderType" = "TransparentCutout"}
+				Lighting Off
+				Cull Off
 
-        CGPROGRAM
+				CGPROGRAM
 
-        #pragma vertex vert
-        #pragma fragment frag
-        #pragma multi_compile __ TBT_LINEAR_TARGET
-        #pragma multi_compile_fog
-        #include "../../../Shaders/Include/Brush.cginc"
-        #include "UnityCG.cginc"
+				#pragma vertex vert
+				#pragma fragment frag
+				#pragma multi_compile __ TBT_LINEAR_TARGET
+				#pragma multi_compile_fog
+				#include "../../../Shaders/Include/Brush.cginc"
+				#include "UnityCG.cginc"
 
-        sampler2D _MainTex;
-        float _Cutoff;
+				sampler2D _MainTex;
+				float _Cutoff;
 
-        struct appdata_t {
-            float4 vertex : POSITION;
-            float2 texcoord : TEXCOORD0;
-            float4 color : COLOR;
-        };
+				struct appdata_t {
+					UNITY_VERTEX_INPUT_INSTANCE_ID
+					float4 vertex : POSITION;
+					float2 texcoord : TEXCOORD0;
+					float4 color : COLOR;
+				};
 
-        struct v2f {
-            float4 vertex : SV_POSITION;
-            float2 texcoord : TEXCOORD0;
-            float4 color : COLOR;
-            UNITY_FOG_COORDS(1)
-        };
+				struct v2f {
+					UNITY_VERTEX_INPUT_INSTANCE_ID
+						UNITY_VERTEX_OUTPUT_STEREO
+					float4 vertex : SV_POSITION;
+					float2 texcoord : TEXCOORD0;
+					float4 color : COLOR;
+					UNITY_FOG_COORDS(1)
+				};
 
-        v2f vert (appdata_t v)
-        {
+				v2f vert(appdata_t v)
+				{
 
-            v2f o;
+					v2f o;
 
-            o.vertex = UnityObjectToClipPos(v.vertex);
-            o.texcoord = v.texcoord;
-            o.color = TbVertToNative(v.color);
-            UNITY_TRANSFER_FOG(o, o.vertex);
-            return o;
-        }
+					UNITY_INITIALIZE_OUTPUT(v2f, o);
+					UNITY_SETUP_INSTANCE_ID(v);
+					UNITY_TRANSFER_INSTANCE_ID(v, o);
+					UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-        fixed4 frag (v2f i) : SV_Target
-        {
-            fixed4 c;
-            UNITY_APPLY_FOG(i.fogCoord, i.color);
-            c = tex2D(_MainTex, i.texcoord) * i.color;
-            if (c.a < _Cutoff) {
-                discard;
-            }
-            c.a = 1;
-            return c;
-        }
+					o.vertex = UnityObjectToClipPos(v.vertex);
+					o.texcoord = v.texcoord;
+					o.color = TbVertToNative(v.color);
+					UNITY_TRANSFER_FOG(o, o.vertex);
+					return o;
+				}
 
-        ENDCG
-    }
-}
+				fixed4 frag(v2f i) : SV_Target
+				{
+					UNITY_SETUP_INSTANCE_ID(i);
 
-Fallback "Unlit/Diffuse"
+					fixed4 c;
+					UNITY_APPLY_FOG(i.fogCoord, i.color);
+					c = tex2D(_MainTex, i.texcoord) * i.color;
+					if (c.a < _Cutoff) {
+						discard;
+					}
+					c.a = 1;
+					return c;
+				}
+
+				ENDCG
+			}
+		}
+
+			Fallback "Unlit/Diffuse"
 
 }
